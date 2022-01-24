@@ -43,7 +43,7 @@
       pylox = pkgs.pylox;
     };
 
-    defaultPackage = packages.mlir;
+    defaultPackage = packages.pylox;
 
     devShell = pkgs.mkShell {
       buildInputs = with pkgs; [

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mlir-fun"
+name = "pylox"
 version = "0.1.0"
 description = ""
 authors = ["Sharad Vikram <sharad.vikram@gmail.com>"]
@@ -10,11 +10,14 @@ python = "^3.10"
 pyparsing = "^3.0.7"
 ipython = "^8.0.1"
 click = "^8.0.3"
+rich = "^11.0.0"
 
 [tool.poetry.scripts]
-lox = 'pylox.main:main'
+pylox = 'pylox.main:main'
 
 [tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+absl-py = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
