@@ -1,0 +1,36 @@
+class DevonshireCream {
+  serveOn() {
+    return "Scones";
+  }
+}
+print DevonshireCream;
+
+class Bagel {}
+var a = Bagel();
+a.foo = 4;
+print a.foo;
+
+class Crunchy {
+  drink() {
+    print "Slurp slurp slurp";
+  }
+  eat() {
+    print "Crunch crunch crunch";
+  }
+  eat_and_drink() {
+    this.drink();
+    this.eat();
+  }
+}
+Crunchy().eat();
+Crunchy().eat_and_drink();
+
+class Foo{
+  init(a, b) {
+    this.a = a;
+    this.b = b;
+  }
+}
+var foo = Foo(1, 2);
+print foo.a;
+print foo.b;

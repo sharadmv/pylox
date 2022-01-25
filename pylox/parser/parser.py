@@ -77,6 +77,8 @@ class Parser:
 
   def declaration(self) -> Optional[ast.Stmt]:
     try:
+      if self.match(TokenType.CLASS):
+        return self.class_decl()
       if self.match(TokenType.FUN):
         return self.function('function')
       if self.match(TokenType.VAR):
@@ -170,6 +172,15 @@ class Parser:
     self.consume(TokenType.RIGHT_BRACE, 'Expect \'}\' after block.')
     return statements
 
+  def class_decl(self) -> ast.Class:
+    name = self.consume(TokenType.IDENTIFIER, 'Expect class name.')
+    self.consume(TokenType.LEFT_BRACE, 'Expect \'{\' before class body.')
+    methods = []
+    while not (self.check(TokenType.RIGHT_BRACE) or self.is_at_end()):
+      methods.append(self.function('method'))
+    self.consume(TokenType.RIGHT_BRACE, 'Expect \'}\' after class body.')
+    return ast.Class(name, methods)
+
   def print_statement(self) -> ast.PrintStmt:
     value = self.expression()
     self.consume(TokenType.SEMICOLON, 'Expect \';\' after value.')
@@ -206,6 +217,8 @@ class Parser:
       if isinstance(expr, ast.Variable):
         name = expr.name
         return ast.Assign(name, value)
+      elif isinstance(expr, ast.Get):
+        return ast.Set(expr.obj, expr.name, value)
       self.error(equals, "Invalid assignment target.")
     return expr
 
@@ -270,6 +283,10 @@ class Parser:
     while True:
       if self.match(TokenType.LEFT_PAREN):
         expr = self.finish_call(expr)
+      elif self.match(TokenType.DOT):
+        name = self.consume(
+            TokenType.IDENTIFIER, 'Expect property name after .')
+        expr = ast.Get(expr, name)
       else:
         break
     return expr
@@ -294,6 +311,8 @@ class Parser:
       return ast.Literal(None)
     if self.match(TokenType.NUMBER, TokenType.STRING):
       return ast.Literal(self.previous().literal)
+    if self.match(TokenType.THIS):
+      return ast.This(self.previous())
     if self.match(TokenType.IDENTIFIER):
       return ast.Variable(self.previous())
     if self.match(TokenType.LEFT_PAREN):

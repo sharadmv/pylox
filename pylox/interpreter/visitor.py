@@ -1,6 +1,6 @@
 import dataclasses
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pylox import errors
 from pylox.interpreter import environment
@@ -30,9 +30,11 @@ class Interpreter(ast.NodeVisitor):
   lox: 'Lox'
 
   def __post_init__(self):
-    self.env = Environment()
     from pylox.interpreter import callable
-    self.env.define('clock', callable.Clock())
+    self.globals = Environment()
+    self.globals.define('clock', callable.Clock())
+    self.env = self.globals
+    self.locals: Dict[Expr, int] = {}
 
   def interpret(self, stmts: List[ast.Stmt]):
     try:
@@ -85,9 +87,22 @@ class Interpreter(ast.NodeVisitor):
       return False
     return True
 
+  def lookup_variable(self, name: Token, expr: Variable) -> Value:
+    distance = self.locals.get(expr, None)
+    if distance is not None:
+      return self.env.get_at(distance, name.lexeme)
+    return self.globals.get(name)
+
+  def resolve(self, expr: Expr, depth: int):
+    self.locals[expr] = depth
+
   def visit_assign(self, expr: Assign) -> Value:
     value = self.evaluate(expr.value)
-    self.env.assign(expr.name, value)
+    distance = self.locals[expr]
+    if distance is not None:
+      self.env.assign_at(distance, expr.name, value)
+    else:
+      self.globals.assign(expr.name, value)
     return value
 
   def visit_binary(self, expr: Binary) -> Value:
@@ -145,6 +160,18 @@ class Interpreter(ast.NodeVisitor):
         return left
     return self.evaluate(expr.right)
 
+  def visit_set(self, expr: ast.Set) -> Value:
+    obj = self.evaluate(expr.obj)
+    from pylox.interpreter import lox_class
+    if not isinstance(obj, lox_class.LoxInstance):
+      raise errors.RuntimeError(expr.name, "Only instances have fields.")
+    value = self.evaluate(expr.value)
+    obj.set(expr.name, value)
+    return value
+
+  def visit_this(self, expr: ast.This) -> Value:
+    return self.lookup_variable(expr.keyword, expr)
+
   def visit_unary(self, expr: Unary) -> Value:
     right = self.evaluate(expr.right)
     match expr.operator.type:
@@ -158,7 +185,7 @@ class Interpreter(ast.NodeVisitor):
 
   def visit_function_decl(self, stmt: ast.FunctionDecl) -> Value:
     from pylox.interpreter import callable
-    function = callable.LoxFunction(stmt, self.env)
+    function = callable.LoxFunction(stmt, self.env, False)
     self.env.define(stmt.name.lexeme, function)
     return
 
@@ -175,8 +202,15 @@ class Interpreter(ast.NodeVisitor):
           expr.paren, f'Expected {callee.arity()} arguments but got {len(arguments)}.')
     return callee.call(self, arguments)
 
+  def visit_get(self, expr: ast.Get) -> Value:
+    from pylox.interpreter import lox_class
+    obj = self.evaluate(expr.obj)
+    if isinstance(obj, lox_class.LoxInstance):
+      return obj.get(expr.name)
+    raise errors.RuntimeError(expr.name, 'Only instances have properties.')
+
   def visit_variable(self, expr: ast.Variable) -> Value:
-    return self.env.get(expr.name)
+    return self.lookup_variable(expr.name, expr)
 
   def visit_if(self, stmt: ast.If) -> Value:
     pred = self.evaluate(stmt.condition)
@@ -201,13 +235,24 @@ class Interpreter(ast.NodeVisitor):
       value = self.evaluate(stmt.value)
     raise Return(value)
 
-  def visit_block(self, stmt: Block) -> Value:
-    return self.execute_block(stmt.statements, Environment(parent=self.env))
-
   def visit_while(self, stmt: ast.While) -> Value:
     while self.is_truthy(self.evaluate(stmt.condition)):
       self.execute(stmt.body)
 
+  def visit_block(self, stmt: Block) -> Value:
+    return self.execute_block(stmt.statements, Environment(parent=self.env))
+
+  def visit_class(self, stmt: ast.Class) -> Value:
+    self.env.define(stmt.name.lexeme, None)
+    from pylox.interpreter import lox_class
+    from pylox.interpreter import callable
+    methods = {}
+    for method in stmt.methods:
+      func = callable.LoxFunction(method, self.env, method.name.lexeme == 'init')
+      methods[method.name.lexeme] = func
+    klass = lox_class.LoxClass(stmt.name.lexeme, methods)
+    self.env.assign(stmt.name, klass)
+    
   def visit_var_decl(self, stmt: VarDecl) -> Value:
     value = None
     if stmt.initializer is not None:

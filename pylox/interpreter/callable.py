@@ -10,6 +10,7 @@ from pylox.parser import ast
 
 Value = Any
 Interpreter = visitor.Interpreter
+Environment = environment.Environment
 
 
 class LoxCallable(metaclass=abc.ABCMeta):
@@ -40,6 +41,7 @@ class Clock(LoxCallable):
 class LoxFunction(LoxCallable):
   declaration: ast.FunctionDecl
   closure: environment.Environment
+  is_initializer: bool
 
   def arity(self) -> int:
     return len(self.declaration.params)
@@ -52,6 +54,13 @@ class LoxFunction(LoxCallable):
       interpreter.execute_block(self.declaration.body, env)
     except visitor.Return as e:
       return e.value
+    if self.is_initializer:
+      return self.closure.get_at(0, 'this')
+
+  def bind(self, instance):
+    env = Environment(self.closure)
+    env.define('this', instance)
+    return LoxFunction(self.declaration, env, self.is_initializer)
 
   def __str__(self):
     return f'<fn {self.declaration.name.lexeme}>'

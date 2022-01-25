@@ -32,3 +32,17 @@ class Environment:
         return self.parent.assign(token, value)
       raise errors.RuntimeError(token, f'Undefined variable \'{token.lexeme}\'.')
     self.define(token.lexeme, value)
+
+  def ancestor(self, distance: int) -> 'Environment':
+    if distance <= 0:
+      return self
+    if self.parent is None:
+      raise ValueError('Resolution error!')
+    return self.parent.ancestor(distance - 1)
+
+  def get_at(self, distance: int, name: str) -> Value:
+    return self.ancestor(distance).values[name]
+
+  def assign_at(self, distance: int, name: Token, value: Value) -> None:
+    self.ancestor(distance).values[name.lexeme] = value
+

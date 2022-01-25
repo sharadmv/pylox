@@ -7,11 +7,11 @@ import rich.console
 import rich.prompt
 
 
+from pylox import analysis
 from pylox import errors
 from pylox import interpreter
 from pylox import parser
 from pylox.parser import scanner
-from pylox.parser import ast_printer
 
 
 error_console = rich.console.Console(stderr=True)
@@ -57,6 +57,10 @@ class Lox:
 
   def run(self, source: str):
     statements = parser.parse(self, source)
+    if self.has_error:
+      return
+    variable_resolver = analysis.VariableResolver(self, self.interpreter)
+    variable_resolver.resolve_statements(statements)
     if self.has_error:
       return
     self.interpreter.interpret(statements)

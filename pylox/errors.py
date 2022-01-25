@@ -1,8 +1,7 @@
-from pylox.parser import scanner
-
 __all__ = [
     'ScanningError',
     'ParsingError',
+    'RuntimeError',
 ]
 
 
@@ -21,12 +20,9 @@ class ParsingError(Exception):
     self.message = message
     self.line = line
 
-
 class RuntimeError(Exception):
   
-  def __init__(self, token: scanner.Token, message: str):
+  def __init__(self, token, message: str):
     super().__init__(token, message)
     self.message = message
     self.token = token
-
-

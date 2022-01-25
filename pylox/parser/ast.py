@@ -47,6 +47,15 @@ class Call(Expr):
 
 
 @dataclasses.dataclass
+class Get(Expr):
+  obj: Expr
+  name: Token
+
+  def accept(self, visitor: 'NodeVisitor'):
+    return visitor.visit_get(self)
+
+
+@dataclasses.dataclass
 class Grouping(Expr):
   expression: Expr
 
@@ -67,8 +76,22 @@ class Logical(Expr):
   operator: Token
   right: Expr
 
+@dataclasses.dataclass
+class Set(Expr):
+  obj: Expr
+  name: Token
+  value: Expr
+
   def accept(self, visitor: 'NodeVisitor'):
-    return visitor.visit_logical(self)
+    return visitor.visit_set(self)
+
+
+@dataclasses.dataclass(unsafe_hash=True)
+class This(Expr):
+  keyword: Token
+
+  def accept(self, visitor: 'NodeVisitor'):
+    return visitor.visit_this(self)
 
 
 @dataclasses.dataclass
@@ -80,7 +103,7 @@ class Unary(Expr):
     return visitor.visit_unary(self)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(unsafe_hash=True)
 class Variable(Expr):
   name: Token
 
@@ -153,6 +176,16 @@ class Block(Stmt):
 
 
 @dataclasses.dataclass
+class Class(Stmt):
+  name: Token
+  methods: List[FunctionDecl]
+
+  def accept(self, visitor: 'NodeVisitor'):
+    return visitor.visit_class(self)
+
+
+
+@dataclasses.dataclass
 class VarDecl(Stmt):
   name: Token
   initializer: Optional[Expr]
@@ -172,6 +205,10 @@ class NodeVisitor(metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
+  def visit_get(self, expr: Get) -> Any:
+    pass
+
+  @abc.abstractmethod
   def visit_binary(self, expr: Binary) -> Any:
     pass
 
@@ -188,6 +225,14 @@ class NodeVisitor(metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
+  def visit_set(self, expr: Set) -> Any:
+    pass
+
+  @abc.abstractmethod
+  def visit_this(self, expr: This) -> Any:
+    pass
+
+  @abc.abstractmethod
   def visit_unary(self, expr: Unary) -> Any:
     pass
 
@@ -196,7 +241,7 @@ class NodeVisitor(metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
-  def visit_function_decl(self, stmt: If) -> Any:
+  def visit_function_decl(self, stmt: FunctionDecl) -> Any:
     pass
 
   @abc.abstractmethod
@@ -221,6 +266,10 @@ class NodeVisitor(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def visit_block(self, stmt: Block) -> Any:
+    pass
+
+  @abc.abstractmethod
+  def visit_class(self, stmt: Class) -> Any:
     pass
 
   @abc.abstractmethod
