@@ -37,9 +37,6 @@
   in
   rec {
     packages = {
-      mlir = (pkgs.callPackage ./mlir.nix {
-        inherit llvm-project;
-      });
       pylox = pkgs.pylox;
     };
 
@@ -47,7 +44,6 @@
 
     devShell = pkgs.mkShell {
       buildInputs = with pkgs; [
-        packages.mlir
         poetry
         python310
         pylox-env
