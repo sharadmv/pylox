@@ -34,3 +34,27 @@ class Foo{
 var foo = Foo(1, 2);
 print foo.a;
 print foo.b;
+
+class Doughnut {
+  init(name) {
+    this.name = name;
+  }
+  cook() {
+    print "Fry until golden brown.";
+    print "Eating:";
+    print this.name;
+  }
+}
+
+class BostonCream < Doughnut {
+  init() {
+    super.init("Boston Cream");
+  }
+  eat() {
+    this.cook();
+    print "This doughnut has cream!";
+  }
+}
+
+var foo = BostonCream();
+foo.eat();

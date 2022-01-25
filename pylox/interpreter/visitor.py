@@ -169,6 +169,16 @@ class Interpreter(ast.NodeVisitor):
     obj.set(expr.name, value)
     return value
 
+  def visit_super(self, expr: ast.Super) -> Value:
+    distance = self.locals[expr]
+    superclass = self.env.get_at(distance, 'super')
+    object = self.env.get_at(distance - 1, 'this')
+    method = superclass.find_method(expr.method.lexeme)
+    if not method:
+      raise errors.RuntimeError(
+          expr.method, f'Undefined property \'{expr.method.lexeme}\'.')
+    return method.bind(object)
+
   def visit_this(self, expr: ast.This) -> Value:
     return self.lookup_variable(expr.keyword, expr)
 
@@ -243,14 +253,26 @@ class Interpreter(ast.NodeVisitor):
     return self.execute_block(stmt.statements, Environment(parent=self.env))
 
   def visit_class(self, stmt: ast.Class) -> Value:
-    self.env.define(stmt.name.lexeme, None)
     from pylox.interpreter import lox_class
     from pylox.interpreter import callable
+    superclass = None
+    if stmt.superclass:
+      superclass = self.evaluate(stmt.superclass)
+      if not isinstance(superclass, lox_class.LoxClass):
+        raise errors.RuntimeError(
+            stmt.superclass.name, 'Superclass must be a class.')
+    self.env.define(stmt.name.lexeme, None)
+    if stmt.superclass:
+      self.env = Environment(self.env)
+      self.env.define('super', superclass)
     methods = {}
     for method in stmt.methods:
       func = callable.LoxFunction(method, self.env, method.name.lexeme == 'init')
       methods[method.name.lexeme] = func
-    klass = lox_class.LoxClass(stmt.name.lexeme, methods)
+    klass = lox_class.LoxClass(stmt.name.lexeme, superclass, methods)
+    if stmt.superclass:
+      assert self.env.parent is not None
+      self.env = self.env.parent
     self.env.assign(stmt.name, klass)
     
   def visit_var_decl(self, stmt: VarDecl) -> Value:

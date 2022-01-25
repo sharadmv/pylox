@@ -87,6 +87,15 @@ class Set(Expr):
 
 
 @dataclasses.dataclass(unsafe_hash=True)
+class Super(Expr):
+  keyword: Token
+  method: Token
+
+  def accept(self, visitor: 'NodeVisitor'):
+    return visitor.visit_super(self)
+
+
+@dataclasses.dataclass(unsafe_hash=True)
 class This(Expr):
   keyword: Token
 
@@ -178,11 +187,11 @@ class Block(Stmt):
 @dataclasses.dataclass
 class Class(Stmt):
   name: Token
+  superclass: Optional[Variable]
   methods: List[FunctionDecl]
 
   def accept(self, visitor: 'NodeVisitor'):
     return visitor.visit_class(self)
-
 
 
 @dataclasses.dataclass
@@ -226,6 +235,10 @@ class NodeVisitor(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def visit_set(self, expr: Set) -> Any:
+    pass
+
+  @abc.abstractmethod
+  def visit_super(self, expr: Super) -> Any:
     pass
 
   @abc.abstractmethod

@@ -22,6 +22,7 @@ class FunctionType(enum.Enum):
 class ClassType(enum.Enum):
   NONE = enum.auto()
   CLASS = enum.auto()
+  SUBCLASS = enum.auto()
 
 
 @dataclasses.dataclass
@@ -113,18 +114,29 @@ class VariableResolver(ast.NodeVisitor):
     self.resolve(expr.value)
     self.resolve(expr.obj)
 
+  def visit_super(self, expr: ast.Super) -> None:
+    if self.current_klass == ClassType.NONE:
+      self.lox.token_error(expr.keyword, 'Can\'t use `super` outside of class.')
+    elif self.current_klass != ClassType.SUBCLASS:
+      self.lox.token_error(
+          expr.keyword, 'Can\'t use `super` in a class with no superclass.')
+    self.resolve_local(expr, expr.keyword)
+
   def visit_this(self, expr: ast.This) -> None:
     if self.current_klass is ClassType.NONE:
-      self.lox.error(expr.keyword, 'Can\'t use `this` outside of a class.')
+      self.lox.token_error(expr.keyword, 'Can\'t use `this` outside of a class.')
     self.resolve_local(expr, expr.keyword)
 
   def visit_unary(self, expr: ast.Unary) -> None:
     self.resolve(expr.right)
 
   def visit_variable(self, expr: ast.Variable) -> None:
-    if self.scopes and not self.current_scope()[expr.name.lexeme]:
-      self.lox.token_error(
-          expr.name, 'Can\'t read local variable in its own initializer')
+    if self.scopes:
+      current_scope = self.current_scope()
+      if (expr.name.lexeme in current_scope and
+          not self.current_scope()[expr.name.lexeme]):
+        self.lox.token_error(
+            expr.name, 'Can\'t read local variable in its own initializer')
     self.resolve_local(expr, expr.name)
     return
 
@@ -171,13 +183,25 @@ class VariableResolver(ast.NodeVisitor):
   def visit_class(self, stmt: ast.Class) -> None:
     self.declare(stmt.name)
     self.define(stmt.name)
-    with self.scope(), self.new_klass(ClassType.CLASS):
-      self.current_scope()['this'] = True
-      for method in stmt.methods:
-        declaration = FunctionType.METHOD
-        if method.name.lexeme == 'init':
-          declaration = FunctionType.INITIALIZER
-        self.resolve_function(method, declaration)
+    with self.new_klass(ClassType.CLASS):
+      superclass_scope = contextlib.nullcontext()
+      if stmt.superclass:
+        if stmt.name.lexeme == stmt.superclass.name.lexeme:
+          self.lox.token_error(
+              stmt.superclass.name, 'A class can\'t inherit from itself.')
+        self.current_klass = ClassType.SUBCLASS
+        self.resolve(stmt.superclass)
+        superclass_scope = self.scope()
+      with superclass_scope:
+        if stmt.superclass:
+          self.current_scope()['super'] = True
+        with self.scope():
+          self.current_scope()['this'] = True
+          for method in stmt.methods:
+            declaration = FunctionType.METHOD
+            if method.name.lexeme == 'init':
+              declaration = FunctionType.INITIALIZER
+            self.resolve_function(method, declaration)
 
   def visit_var_decl(self, stmt: ast.VarDecl) -> None:
     self.declare(stmt.name)

@@ -13,6 +13,7 @@ Interpreter = visitor.Interpreter
 @dataclasses.dataclass
 class LoxClass(callable.LoxCallable):
   name: str
+  superclass: Optional['LoxClass']
   methods: Dict[str, callable.LoxFunction]
 
   def __str__(self):
@@ -32,7 +33,12 @@ class LoxClass(callable.LoxCallable):
     return instance
   
   def find_method(self, name: str) -> Optional[callable.LoxFunction]:
-    return self.methods.get(name, None)
+    method = self.methods.get(name, None)
+    if method:
+      return method
+    if self.superclass:
+      return self.superclass.find_method(name)
+
 
 
 @dataclasses.dataclass
