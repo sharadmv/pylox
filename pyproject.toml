@@ -7,8 +7,6 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pyparsing = "^3.0.7"
-ipython = "^8.0.1"
 click = "^8.0.3"
 rich = "^11.0.0"
 
