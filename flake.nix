@@ -3,14 +3,10 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    llvm-project = {
-      url = "github:llvm/llvm-project";
-      flake = false;
-    };
     poetry2nix.url = "github:nix-community/poetry2nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, llvm-project, poetry2nix }:
+  outputs = { self, nixpkgs, flake-utils, poetry2nix }:
   {
     overlay = nixpkgs.lib.composeManyExtensions [
       poetry2nix.overlay

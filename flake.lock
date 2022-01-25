@@ -30,22 +30,6 @@
         "type": "github"
       }
     },
-    "llvm-project": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1642821477,
-        "narHash": "sha256-BB1PS6F0nZUUtgeeWG8+nzu0nzo2dfUC37tKpB8Ygko=",
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "rev": "55d887b833646baeea0e3371fd2cbbd7550a8d4d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "llvm",
-        "repo": "llvm-project",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1642492175,
@@ -97,7 +81,6 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "llvm-project": "llvm-project",
         "nixpkgs": "nixpkgs",
         "poetry2nix": "poetry2nix"
       }
