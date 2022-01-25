@@ -6,7 +6,7 @@ Pylox exists for pedagogical purposes and closely mirrors the `jlox` interpreter
 
 ## Usage
 
-We uses `poetry` for package management. To install dependencies, run:
+We use `poetry` for package management. To install dependencies, run:
 
 ```bash
 $ poetry install
